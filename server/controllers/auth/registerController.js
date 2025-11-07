@@ -1,35 +1,41 @@
-const bcrypt = require("bcrypt");
-const User = require("../../models/userModel");
+const User = require('../../models/userModel');
+const bcrypt = require('bcrypt');
+const jwt = require('jsonwebtoken');
 
 const registerController = async (req, res) => {
   try {
     const { displayName, username, email, password } = req.body;
 
-    // basic validation
-    if (!displayName || !username || !email || !password)
-      return res.status(400).json({ message: "All fields are required" });
-
-    // check if already exists
-    const existingUser = await User.findOne({ $or: [{ email }, { username }] });
+    const existingUser = await User.findOne({ email });
     if (existingUser)
-      return res.status(409).json({ message: "User already exists" });
+      return res.status(400).json({ message: 'User already exists' });
 
-    // hash password
     const hashedPassword = await bcrypt.hash(password, 10);
 
-    // create user
-    const newUser = new User({
+    const newUser = await User.create({
       displayName,
       username,
       email,
       password: hashedPassword,
     });
 
-    await newUser.save();
-    return res.status(201).json({ message: "User registered successfully" });
-  } catch (err) {
-    console.error(err);
-    return res.status(500).json({ message: "Server error" });
+    const token = jwt.sign(
+      { id: newUser._id, role: newUser.role },
+      process.env.JWT_SECRET,
+      { expiresIn: '7d' }
+    );
+
+    res.cookie('token', token, {
+      httpOnly: true,
+      sameSite: 'strict',
+      secure: false,
+      maxAge: 7 * 24 * 60 * 60 * 1000,
+    });
+
+    res.status(201).json({ message: 'User registered successfully' });
+  } catch (error) {
+    console.error('Register error:', error);
+    res.status(500).json({ message: 'Server error' });
   }
 };
 
