@@ -65,6 +65,12 @@ const userSchema = new mongoose.Schema(
       type: [String], // e.g. ["Frontend Guru", "AI Enthusiast"]
       default: [],
     },
+    location: {
+  type: String,
+  default: "",
+  trim: true,
+},
+
     activity: {
       totalPosts: { type: Number, default: 0 },
       totalLikes: { type: Number, default: 0 },
